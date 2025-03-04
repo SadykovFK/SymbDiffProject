@@ -1,2 +1,0 @@
-/Library/Developer/CommandLineTools/usr/bin/ar qc libSymbDiff.a CMakeFiles/SymbDiff.dir/SymDiff.cpp.o
-/Library/Developer/CommandLineTools/usr/bin/ranlib libSymbDiff.a
