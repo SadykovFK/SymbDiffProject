@@ -9,14 +9,18 @@ Expression<T>::Expression(const std::string& variable) : type(Type::Variable), v
 template<typename T>
 Expression<T>::Expression(const Expression& other)
     : type(other.type), value(other.value), variable(other.variable) {
-    if (other.left) left = std::make_unique<Expression>(*other.left);
-    if (other.right) right = std::make_unique<Expression>(*other.right);
+    if (other.left) left = std::unique_ptr<Expression>(new Expression(*other.left));
+    if (other.right) right = std::unique_ptr<Expression>(new Expression(*other.right));
 }
 
 template<typename T>
 Expression<T>::Expression(Expression&& other) noexcept
     : type(other.type), value(std::move(other.value)), variable(std::move(other.variable)),
       left(std::move(other.left)), right(std::move(other.right)) {}
+
+template<typename T>
+Expression<T>::Expression(Type type, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+    : type(type), left(std::move(left)), right(std::move(right)) {}
 
 template<typename T>
 Expression<T>::~Expression() {}
@@ -27,8 +31,8 @@ Expression<T>& Expression<T>::operator=(const Expression& other) {
         type = other.type;
         value = other.value;
         variable = other.variable;
-        if (other.left) left = std::make_unique<Expression>(*other.left);
-        if (other.right) right = std::make_unique<Expression>(*other.right);
+        if (other.left) left = std::unique_ptr<Expression>(new Expression(*other.left));
+        if (other.right) right = std::unique_ptr<Expression>(new Expression(*other.right));
     }
     return *this;
 }
@@ -49,8 +53,8 @@ template<typename T>
 Expression<T> Expression<T>::operator+(const Expression& other) const {
     Expression result(*this);
     result.type = Type::Add;
-    result.left = std::make_unique<Expression>(*this);
-    result.right = std::make_unique<Expression>(other);
+    result.left = std::unique_ptr<Expression>(new Expression(*this));
+    result.right = std::unique_ptr<Expression>(new Expression(other));
     return result;
 }
 
@@ -58,8 +62,8 @@ template<typename T>
 Expression<T> Expression<T>::operator-(const Expression& other) const {
     Expression result(*this);
     result.type = Type::Subtract;
-    result.left = std::make_unique<Expression>(*this);
-    result.right = std::make_unique<Expression>(other);
+    result.left = std::unique_ptr<Expression>(new Expression(*this));
+    result.right = std::unique_ptr<Expression>(new Expression(other));
     return result;
 }
 
@@ -67,8 +71,8 @@ template<typename T>
 Expression<T> Expression<T>::operator*(const Expression& other) const {
     Expression result(*this);
     result.type = Type::Multiply;
-    result.left = std::make_unique<Expression>(*this);
-    result.right = std::make_unique<Expression>(other);
+    result.left = std::unique_ptr<Expression>(new Expression(*this));
+    result.right = std::unique_ptr<Expression>(new Expression(other));
     return result;
 }
 
@@ -76,8 +80,8 @@ template<typename T>
 Expression<T> Expression<T>::operator/(const Expression& other) const {
     Expression result(*this);
     result.type = Type::Divide;
-    result.left = std::make_unique<Expression>(*this);
-    result.right = std::make_unique<Expression>(other);
+    result.left = std::unique_ptr<Expression>(new Expression(*this));
+    result.right = std::unique_ptr<Expression>(new Expression(other));
     return result;
 }
 
@@ -85,8 +89,8 @@ template<typename T>
 Expression<T> Expression<T>::operator^(const Expression& other) const {
     Expression result(*this);
     result.type = Type::Power;
-    result.left = std::make_unique<Expression>(*this);
-    result.right = std::make_unique<Expression>(other);
+    result.left = std::unique_ptr<Expression>(new Expression(*this));
+    result.right = std::unique_ptr<Expression>(new Expression(other));
     return result;
 }
 
@@ -94,7 +98,7 @@ template<typename T>
 Expression<T> Expression<T>::sin(const Expression& expr) {
     Expression result(expr);
     result.type = Type::Sin;
-    result.left = std::make_unique<Expression>(expr);
+    result.left = std::unique_ptr<Expression>(new Expression(expr));
     return result;
 }
 
@@ -102,7 +106,7 @@ template<typename T>
 Expression<T> Expression<T>::cos(const Expression& expr) {
     Expression result(expr);
     result.type = Type::Cos;
-    result.left = std::make_unique<Expression>(expr);
+    result.left = std::unique_ptr<Expression>(new Expression(expr));
     return result;
 }
 
@@ -110,7 +114,7 @@ template<typename T>
 Expression<T> Expression<T>::ln(const Expression& expr) {
     Expression result(expr);
     result.type = Type::Ln;
-    result.left = std::make_unique<Expression>(expr);
+    result.left = std::unique_ptr<Expression>(new Expression(expr));
     return result;
 }
 
@@ -118,7 +122,7 @@ template<typename T>
 Expression<T> Expression<T>::exp(const Expression& expr) {
     Expression result(expr);
     result.type = Type::Exp;
-    result.left = std::make_unique<Expression>(expr);
+    result.left = std::unique_ptr<Expression>(new Expression(expr));
     return result;
 }
 
@@ -127,9 +131,9 @@ Expression<T> Expression<T>::substitute(const std::string& var, const T& value) 
     if (type == Type::Variable && variable == var) {
         return Expression(value);
     } else if (left && right) {
-        return Expression(type, left->substitute(var, value), right->substitute(var, value));
+        return Expression(type, std::unique_ptr<Expression>(new Expression(left->substitute(var, value))), std::unique_ptr<Expression>(new Expression(right->substitute(var, value))));
     } else if (left) {
-        return Expression(type, left->substitute(var, value));
+        return Expression(type, std::unique_ptr<Expression>(new Expression(left->substitute(var, value))), nullptr);
     }
     return *this;
 }

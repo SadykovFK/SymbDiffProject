@@ -16,6 +16,7 @@ public:
     Expression(const std::string& variable);
     Expression(const Expression& other);
     Expression(Expression&& other) noexcept;
+    Expression(Type type, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right); 
     ~Expression();
 
     Expression& operator=(const Expression& other);
@@ -24,6 +25,7 @@ public:
     Expression operator+(const Expression& other) const;
     Expression operator-(const Expression& other) const;
     Expression operator*(const Expression& other) const;
+    Expression operator*(Expression&& other) const;
     Expression operator/(const Expression& other) const;
     Expression operator^(const Expression& other) const;
 
@@ -33,6 +35,7 @@ public:
     static Expression exp(const Expression& expr);
 
     Expression substitute(const std::string& var, const T& value) const;
+
 
     T evaluate(const std::map<std::string, T>& variables) const;
 
@@ -48,7 +51,5 @@ private:
 
     std::string typeToString() const;
 };
-
-#include "expression.cpp"
 
 #endif // EXPRESSION_HPP
