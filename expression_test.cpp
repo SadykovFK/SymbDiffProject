@@ -1,3 +1,6 @@
+// run with g++ -std=c++11 -o expression_test expression.cpp expression_test.cpp
+// ./expression_test
+
 #include "expression.hpp"
 #include <iostream>
 #include <cassert>
