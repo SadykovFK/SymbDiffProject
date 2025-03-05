@@ -19,7 +19,7 @@ Expression<T>::Expression(Expression&& other) noexcept
       left(std::move(other.left)), right(std::move(other.right)) {}
 
 template<typename T>
-Expression<T>::Expression(Type type, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
+Expression<T>::Expression(typename Expression<T>::Type type, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
     : type(type), left(std::move(left)), right(std::move(right)) {}
 
 template<typename T>

@@ -12,6 +12,8 @@
 template<typename T>
 class Expression {
 public:
+    enum class Type { Constant, Variable, Add, Subtract, Multiply, Divide, Power, Sin, Cos, Ln, Exp };
+
     Expression(T value);
     Expression(const std::string& variable);
     Expression(const Expression& other);
@@ -36,13 +38,11 @@ public:
 
     Expression substitute(const std::string& var, const T& value) const;
 
-
     T evaluate(const std::map<std::string, T>& variables) const;
 
     std::string toString() const;
 
 private:
-    enum class Type { Constant, Variable, Add, Subtract, Multiply, Divide, Power, Sin, Cos, Ln, Exp };
     Type type;
     T value;
     std::string variable;
