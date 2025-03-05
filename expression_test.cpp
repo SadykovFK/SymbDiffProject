@@ -105,6 +105,6 @@ int main() {
     testExp();
     testSubstitute();
 
-    std::cout << "All tests passed!" << std::endl;
+    std::cout << "Все тесты пройдены!" << std::endl;
     return 0;
 }
