@@ -1,26 +1,42 @@
 #include "expression.hpp"
+#include <cmath>
+#include <complex>
+#include <stdexcept>
+#include <sstream>
+
+// --------------------- Конструкторы и оператор= ---------------------
 
 template<typename T>
-Expression<T>::Expression(T value) : type(Type::Constant), value(value) {}
+Expression<T>::Expression(T value)
+    : type(Type::Constant), value(value) {}
 
 template<typename T>
-Expression<T>::Expression(const std::string& variable) : type(Type::Variable), variable(variable) {}
+Expression<T>::Expression(const std::string& variable)
+    : type(Type::Variable), variable(variable) {}
 
 template<typename T>
 Expression<T>::Expression(const Expression& other)
-    : type(other.type), value(other.value), variable(other.variable) {
-    if (other.left) left = std::unique_ptr<Expression>(new Expression(*other.left));
-    if (other.right) right = std::unique_ptr<Expression>(new Expression(*other.right));
+    : type(other.type), value(other.value), variable(other.variable)
+{
+    if (other.left)
+        left = std::unique_ptr<Expression>(new Expression(*other.left));
+    if (other.right)
+        right = std::unique_ptr<Expression>(new Expression(*other.right));
 }
 
 template<typename T>
 Expression<T>::Expression(Expression&& other) noexcept
-    : type(other.type), value(std::move(other.value)), variable(std::move(other.variable)),
-      left(std::move(other.left)), right(std::move(other.right)) {}
+    : type(other.type), value(std::move(other.value)),
+      variable(std::move(other.variable)),
+      left(std::move(other.left)), right(std::move(other.right))
+{}
 
 template<typename T>
-Expression<T>::Expression(typename Expression<T>::Type type, std::unique_ptr<Expression> left, std::unique_ptr<Expression> right)
-    : type(type), left(std::move(left)), right(std::move(right)) {}
+Expression<T>::Expression(typename Expression<T>::Type type,
+                          std::unique_ptr<Expression> left,
+                          std::unique_ptr<Expression> right)
+    : type(type), left(std::move(left)), right(std::move(right))
+{}
 
 template<typename T>
 Expression<T>::~Expression() {}
@@ -31,8 +47,14 @@ Expression<T>& Expression<T>::operator=(const Expression& other) {
         type = other.type;
         value = other.value;
         variable = other.variable;
-        if (other.left) left = std::unique_ptr<Expression>(new Expression(*other.left));
-        if (other.right) right = std::unique_ptr<Expression>(new Expression(*other.right));
+        if (other.left)
+            left = std::unique_ptr<Expression>(new Expression(*other.left));
+        else
+            left.reset();
+        if (other.right)
+            right = std::unique_ptr<Expression>(new Expression(*other.right));
+        else
+            right.reset();
     }
     return *this;
 }
@@ -48,6 +70,8 @@ Expression<T>& Expression<T>::operator=(Expression&& other) noexcept {
     }
     return *this;
 }
+
+// --------------------- Арифметические операторы ---------------------
 
 template<typename T>
 Expression<T> Expression<T>::operator+(const Expression& other) const {
@@ -94,6 +118,8 @@ Expression<T> Expression<T>::operator^(const Expression& other) const {
     return result;
 }
 
+// --------------------- Функции (sin, cos, ln, exp) ---------------------
+
 template<typename T>
 Expression<T> Expression<T>::sin(const Expression& expr) {
     Expression result(expr);
@@ -126,14 +152,24 @@ Expression<T> Expression<T>::exp(const Expression& expr) {
     return result;
 }
 
+// --------------------- Подстановка и вычисление ---------------------
+
 template<typename T>
-Expression<T> Expression<T>::substitute(const std::string& var, const T& value) const {
+Expression<T> Expression<T>::substitute(const std::string& var, const T& val) const {
     if (type == Type::Variable && variable == var) {
-        return Expression(value);
-    } else if (left && right) {
-        return Expression(type, std::unique_ptr<Expression>(new Expression(left->substitute(var, value))), std::unique_ptr<Expression>(new Expression(right->substitute(var, value))));
+        return Expression<T>(val);
+    }
+    if (left && right) {
+        auto newLeft = left->substitute(var, val);
+        auto newRight = right->substitute(var, val);
+        return Expression<T>(type,
+            std::unique_ptr<Expression>(new Expression(newLeft)),
+            std::unique_ptr<Expression>(new Expression(newRight)));
     } else if (left) {
-        return Expression(type, std::unique_ptr<Expression>(new Expression(left->substitute(var, value))), nullptr);
+        auto newLeft = left->substitute(var, val);
+        return Expression<T>(type,
+            std::unique_ptr<Expression>(new Expression(newLeft)),
+            nullptr);
     }
     return *this;
 }
@@ -144,6 +180,8 @@ T Expression<T>::evaluate(const std::map<std::string, T>& variables) const {
         case Type::Constant:
             return value;
         case Type::Variable:
+            if (variables.find(variable) == variables.end())
+                throw std::runtime_error("Не задано значение для переменной " + variable);
             return variables.at(variable);
         case Type::Add:
             return left->evaluate(variables) + right->evaluate(variables);
@@ -164,8 +202,10 @@ T Expression<T>::evaluate(const std::map<std::string, T>& variables) const {
         case Type::Exp:
             return std::exp(left->evaluate(variables));
     }
-    throw std::runtime_error("Unsupported expression type");
+    throw std::runtime_error("Неподдерживаемый тип выражения");
 }
+
+// --------------------- Строковое представление ---------------------
 
 template<typename T>
 std::string Expression<T>::toString() const {
@@ -211,30 +251,66 @@ std::string Expression<T>::toString() const {
 template<typename T>
 std::string Expression<T>::typeToString() const {
     switch (type) {
-        case Type::Constant:
-            return "Constant";
-        case Type::Variable:
-            return "Variable";
-        case Type::Add:
-            return "Add";
-        case Type::Subtract:
-            return "Subtract";
-        case Type::Multiply:
-            return "Multiply";
-        case Type::Divide:
-            return "Divide";
-        case Type::Power:
-            return "Power";
-        case Type::Sin:
-            return "Sin";
-        case Type::Cos:
-            return "Cos";
-        case Type::Ln:
-            return "Ln";
-        case Type::Exp:
-            return "Exp";
+        case Type::Constant:  return "Constant";
+        case Type::Variable:  return "Variable";
+        case Type::Add:       return "Add";
+        case Type::Subtract:  return "Subtract";
+        case Type::Multiply:  return "Multiply";
+        case Type::Divide:    return "Divide";
+        case Type::Power:     return "Power";
+        case Type::Sin:       return "Sin";
+        case Type::Cos:       return "Cos";
+        case Type::Ln:        return "Ln";
+        case Type::Exp:       return "Exp";
     }
     return "Unknown";
+}
+
+// --------------------- Символьная производная ---------------------
+
+template<typename T>
+Expression<T> Expression<T>::derivative(const std::string& var) const {
+    switch (type) {
+        case Type::Constant:
+            return Expression<T>(static_cast<T>(0));
+        case Type::Variable:
+            return (variable == var) ? Expression<T>(static_cast<T>(1))
+                                     : Expression<T>(static_cast<T>(0));
+        case Type::Add:
+            return left->derivative(var) + right->derivative(var);
+        case Type::Subtract:
+            return left->derivative(var) - right->derivative(var);
+        case Type::Multiply:
+            return (left->derivative(var) * (*right)) +
+                   ((*left) * right->derivative(var));
+        case Type::Divide:
+            return ((left->derivative(var) * (*right))
+                    - ((*left) * right->derivative(var)))
+                    / ((*right) ^ Expression<T>(static_cast<T>(2)));
+        case Type::Power:
+            if (right->type == Type::Constant) {
+                T c = right->value;
+                return Expression<T>(c)
+                       * ((*left) ^ Expression<T>(c - static_cast<T>(1)))
+                       * left->derivative(var);
+            } else {
+                return (*this) * (
+                    right->derivative(var) * Expression<T>::ln(*left)
+                    + (*right) * left->derivative(var) / (*left)
+                );
+            }
+        case Type::Sin:
+            return Expression<T>::cos(*left) * left->derivative(var);
+        case Type::Cos:
+            return Expression<T>(static_cast<T>(-1))
+                   * Expression<T>::sin(*left)
+                   * left->derivative(var);
+        case Type::Ln:
+            return left->derivative(var) / (*left);
+        case Type::Exp:
+            return Expression<T>::exp(*left) * left->derivative(var);
+    }
+    throw std::runtime_error("Derivative not implemented for this expression type");
 }
 
 template class Expression<double>;
