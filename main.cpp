@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
             std::cerr << "Ошибка: не указана переменная после --by\n";
             return 1;
         }
-е
+
         Expression<double> expr = parseExpression(expressionStr);
         Expression<double> diffExpr = expr.derivative(diffVar);
         std::cout << diffExpr.toString() << std::endl;
